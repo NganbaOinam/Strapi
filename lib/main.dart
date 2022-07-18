@@ -1,77 +1,152 @@
-import 'dart:async';
-import 'dart:convert';
+import 'dart:developer';
+
+import 'package:district/service/service_api.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 
-Future<List<Data>> fetchData() async {
-  final response = await http.get('http://localhost:1337/api/districts');
-  if (response.statusCode == 200) {
-    List jsonResponse = json.decode(response.body);
-    return jsonResponse.map((data) => new Data.fromJson(data)).toList();
-  } else {
-    throw Exception("Unexpected error occured!");
-  }
-}
+import 'model/data.model.dart';
 
-class Data {
-  final int userId;
-  final int id;
-  final String title;
+void main() => runApp(const MyApp());
 
-  Data({required this.userId, required this.id, required this.title});
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
-  factory Data.fromJson(Map<String, dynamic> json) {
-    return Data(
-      userId: json["userId"],
-      id: json["id"],
-      title: json["title"],
+  // This widget is the root of your application.
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: '',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: const ShowDistrict(),
     );
   }
 }
 
-void main() => runApp(MyApp());
-
-class MyApp extends StatefulWidget {
-  const MyApp({Key? key}) : super(key: key);
+class ShowDistrict extends StatefulWidget {
+  const ShowDistrict({Key? key}) : super(key: key);
 
   @override
-  State<MyApp> createState() => _MyAppState();
+  State<ShowDistrict> createState() => _ShowDistrictState();
 }
 
-class _MyAppState extends State<MyApp> {
-  late Future<List<Data>> futureData;
+class _ShowDistrictState extends State<ShowDistrict> {
+  final addDistrict = TextEditingController();
+  List<Datum> d = [];
+
+  @override
+  void initState() {
+    super.initState();
+    getdata();
+  }
+
+  getdata() async {
+    final data = await SeviceApi().fetchData();
+
+    setState(() {
+      d = data.data;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: "Flutter API and ListView Example",
       home: Scaffold(
         appBar: AppBar(
-          title: Text("Flutter ListView"),
+          title: const Text("Flutter ListView"),
         ),
         body: Center(
-            child: FutureBuilder<List<Data>>(
-          future: futureData,
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              List<Data>? data = snapshot.data;
-              return ListView.builder(
-                itemCount: data?.length,
-                itemBuilder: (BuildContext, int index) {
-                  return Container(
-                    height: 75,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Padding: EdgeInsets.all(16),
+              ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: d.length,
+                  itemBuilder: (c, i) {
+                    return Column(
+                      children: [
+                        Text(d[i].attributes.name),
+                      ],
+                    );
+
+                    //   return InkWell(
+                    //       onTap: () {
+                    //         showDialog(
+                    //             context: context,
+                    //             builder: (c) {
+                    //               return AlertDialog(
+                    //                 title: Text("data"),
+                    //                 //
+                    //               );
+                    //
+                    //             });
+                    //       },
+                    //       child: const Text('Click to add'),
+                    //       );
+                    // },
+                  }),
+              SizedBox(
+                height: 50,
+              ),
+              FloatingActionButton(
+                  onPressed: () {
+                    showDialog(
+                        context: context,
+                        builder: (c) {
+                          return AlertDialog(
+                            title: const Text('Add new district'),
+                            content: Container(
+                              height: 200,
+                              child: Column(
+                                children: [
+                                  TextField(
+                                    controller: addDistrict,
+                                    decoration: InputDecoration(
+                                        labelText: 'Enter district name'),
+                                  ),
+                                  SizedBox(
+                                    height: 20,
+                                  ),
+                                  ElevatedButton(
+                                      onPressed: () async {
+                                        await SeviceApi()
+                                            .postData(addDistrict.text);
+                                        setState(() {
+                                          getdata();
+                                        });
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: Text('Add'))
+                                ],
+                              ),
+                            ),
+                          );
+                        });
+                  },
+                  tooltip: 'Add district',
+                  child: const Icon(
+                    Icons.add,
                     color: Colors.white,
-                    child: Center(
-                      child: Text(data[index].title),
-                    ),
-                  );
-                },
-              );
-            } else if (snapshot.hasError) {
-              return Text("${snapshot.error}");
-            }
-          },
-        )),
+                  )),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+}
+
+class BodyWidget extends StatelessWidget {
+  const BodyWidget({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(),
     );
   }
 }
